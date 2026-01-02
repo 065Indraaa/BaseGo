@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // Konfigurasi Webpack (WAJIB untuk Metamask/Wagmi)
+  // Konfigurasi Webpack (Wajib untuk Metamask/Wagmi)
   webpack: (config) => {
     config.resolve.fallback = { fs: false, net: false, tls: false };
     config.externals.push('pino-pretty', 'lokijs', 'encoding');
