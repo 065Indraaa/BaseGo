@@ -1,8 +1,4 @@
 @tailwind base;
-
-/* FIX: Import OnchainKit styles disini agar mendeteksi layer base Tailwind */
-@import '@coinbase/onchainkit/styles.css';
-
 @tailwind components;
 @tailwind utilities;
 
