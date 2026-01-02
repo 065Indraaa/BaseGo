@@ -2,35 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Add OnchainKit Variables */
 @layer base {
-  :root {
-    --ock-font-family: "DM Sans", sans-serif;
-    --ock-radius-default: 0.5rem;
-    --ock-radius-inner: 0.375rem;
-    
-    /* Light Mode Colors */
-    --ock-bg-default: #ffffff;
-    --ock-bg-alternate: #f3f4f6;
-    --ock-bg-inverse: #111827;
-    --ock-text-primary: #111827;
-    --ock-text-secondary: #6b7280;
-    --ock-text-inverse: #ffffff;
-    --ock-primary: #0052ff;
-    --ock-primary-hover: #0045d8;
-    --ock-primary-active: #0039b5;
-    --ock-error: #ef4444;
-    --ock-success: #22c55e;
-    --ock-warning: #f59e0b;
+  body {
+    /* Modern Mesh Gradient Background */
+    background-color: #f8fafc;
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+      radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+      radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+    background-image: 
+      radial-gradient(at 40% 20%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(168, 85, 247, 0.05) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, rgba(236, 72, 153, 0.05) 0px, transparent 50%);
+    background-attachment: fixed;
+    color: #0f172a;
+    -webkit-tap-highlight-color: transparent;
   }
+}
 
-  /* Dark Mode Support (Optional) */
-  .dark {
-    --ock-bg-default: #0f172a;
-    --ock-bg-alternate: #1e293b;
-    --ock-bg-inverse: #ffffff;
-    --ock-text-primary: #f8fafc;
-    --ock-text-secondary: #94a3b8;
-    --ock-text-inverse: #0f172a;
-  }
+/* Custom Scrollbar yang lebih tipis dan elegan */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
