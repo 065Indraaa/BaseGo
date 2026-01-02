@@ -2,18 +2,18 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    // Pastikan baris ini ada biar dia baca file di folder PAGES
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    
-    // Pastikan baris ini ada biar dia baca file di folder COMPONENTS (di root)
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    
-    // 🔥 INI YANG PALING PENTING BUAT NEXT.JS APP ROUTER 🔥
-    // Ini nyuruh Tailwind baca SEMUA file di dalam folder APP
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}", // Gue tambahin ini jaga-jaga lu pake folder src
   ],
   theme: {
-    extend: {},
+    extend: {
+      backgroundImage: {
+        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+        "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+      },
+    },
   },
   plugins: [],
 };
