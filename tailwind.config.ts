@@ -2,11 +2,15 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    // Pastikan baris-baris ini ada dan sesuai struktur foldermu:
+    // Pastikan baris ini ada biar dia baca file di folder PAGES
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    
+    // Pastikan baris ini ada biar dia baca file di folder COMPONENTS (di root)
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}", // <--- PENTING untuk App Router
-    "./src/**/*.{js,ts,jsx,tsx,mdx}", // <--- Kalau pakai folder src
+    
+    // 🔥 INI YANG PALING PENTING BUAT NEXT.JS APP ROUTER 🔥
+    // Ini nyuruh Tailwind baca SEMUA file di dalam folder APP
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {},
