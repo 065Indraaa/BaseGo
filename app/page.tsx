@@ -1,18 +1,35 @@
-'use client';
+import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import '@coinbase/onchainkit/styles.css'; // Pastikan CSS OnchainKit terload
+import { RootProvider } from './rootProvider';
 
-import { useAccount } from 'wagmi';
-import LandingPage from './components/LandingPage';
-import Dashboard from './components/Dashboard';
+const inter = Inter({ subsets: ['latin'] });
 
-export default function Page() {
-  // Gunakan hook wagmi untuk cek status koneksi
-  const { isConnected } = useAccount();
+// 1. FIX: Viewport harus dipisah dari metadata di Next.js 14+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#2563EB',
+};
 
-  // Jika Connected -> Tampilkan Dashboard
-  if (isConnected) {
-    return <Dashboard />;
-  }
+export const metadata: Metadata = {
+  title: 'BaseGo Merchant',
+  description: 'Aplikasi Kasir Crypto berbasis Base Network',
+  manifest: '/manifest.json',
+};
 
-  // Jika Tidak Connected -> Tampilkan Landing Page
-  return <Dashboard />;
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="id">
+      <body className={inter.className}>
+        <RootProvider>{children}</RootProvider>
+      </body>
+    </html>
+  );
 }

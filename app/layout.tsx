@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import '@coinbase/onchainkit/styles.css';
-import './globals.css'; // <--- WAJIB ADA
+import './globals.css';
+import '@coinbase/onchainkit/styles.css'; // Pastikan CSS OnchainKit terload
 import { RootProvider } from './rootProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
-// Viewport export terpisah (Next.js 14+)
+// 1. FIX: Viewport harus dipisah dari metadata di Next.js 14+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
