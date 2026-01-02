@@ -2,10 +2,10 @@
 
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { base } from 'viem/chains';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { coinbaseWallet } from 'wagmi/connectors';
 import { type ReactNode, useState } from 'react';
+import { base } from 'wagmi/chains';
 
 // Pastikan membuat file .env.local berisi NEXT_PUBLIC_ONCHAINKIT_API_KEY=...
 const ONCHAINKIT_API_KEY = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY || '';
@@ -17,11 +17,13 @@ const wagmiConfig = createConfig({
       appName: 'BaseGo Merchant',
     }),
   ],
-  transports: [http()], // Fix: Format transport array/map yang benar
+  transports: {
+    [base.id]: http(), 
+  }, // <--- INI YANG KURANG TADI (Penutup object transports)
 });
 
 export function RootProvider({ children }: { children: ReactNode }) {
-  // Fix: Gunakan useState untuk QueryClient agar tidak re-init saat re-render
+  // Menggunakan useState agar QueryClient stabil antar render
   const [queryClient] = useState(() => new QueryClient());
 
   return (
