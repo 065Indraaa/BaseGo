@@ -1,4 +1,4 @@
-﻿@import '@coinbase/onchainkit/styles.css';
+﻿/* Removed onchainkit package import — include its stylesheet via CDN in layout.tsx if needed */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
