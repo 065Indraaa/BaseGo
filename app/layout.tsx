@@ -27,10 +27,7 @@ export default function RootLayout({
   return (
     <html lang="id">
       <head>
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/@coinbase/onchainkit/dist/assets/style.css"
-        />
+        <link rel="stylesheet" href="/onchainkit.css" />
       </head>
       <body className={inter.className}>
         <RootProvider>{children}</RootProvider>
