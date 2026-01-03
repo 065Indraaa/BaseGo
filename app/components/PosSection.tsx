@@ -11,9 +11,11 @@ interface PosSectionProps {
   kycStatus: string;
   onOpenWithdraw: () => void;
   setActiveTab: (tab: string) => void;
+  idrxBalance?: string;
+  isLoading?: boolean;
 }
 
-export default function PosSection({ kycStatus, onOpenWithdraw, setActiveTab }: PosSectionProps) {
+export default function PosSection({ kycStatus, onOpenWithdraw, setActiveTab, idrxBalance = '0.00', isLoading = false }: PosSectionProps) {
   const defaultToken = TOKENS && TOKENS.length > 0 ? TOKENS[0] : { 
     id: 'idrx', name: 'IDR X', symbol: 'IDRX', price: 1, logo: '🇮🇩', color: 'bg-red-50 text-red-600 border-red-200' 
   };
@@ -90,7 +92,14 @@ export default function PosSection({ kycStatus, onOpenWithdraw, setActiveTab }: 
                     
                     <div className="mb-8">
                         <p className="text-indigo-200 text-sm font-medium mb-1 tracking-wide">Saldo Tersedia</p>
-                        <h2 className="text-4xl font-black tracking-tight drop-shadow-lg">Rp 12.500.000</h2>
+                        {isLoading ? (
+                            <div className="h-12 bg-indigo-950/30 rounded-lg animate-pulse"></div>
+                        ) : (
+                            <>
+                                <h2 className="text-4xl font-black tracking-tight drop-shadow-lg">Rp {new Intl.NumberFormat('id-ID').format(parseFloat(idrxBalance) * 16000)}</h2>
+                                <p className="text-indigo-300 text-xs mt-1">{idrxBalance} IDRX</p>
+                            </>
+                        )}
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">

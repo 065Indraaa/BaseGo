@@ -8,21 +8,26 @@ import { TRANSACTION_HISTORY, formatIDRX } from '../lib/data';
 type TimeFilter = 'Hari Ini' | '7 Hari' | '1 Bulan' | '1 Tahun' | 'Semua';
 type TabType = 'income' | 'withdraw';
 
-export default function HistorySection() {
+interface HistorySectionProps {
+  transactions?: any[];
+  isLoading?: boolean;
+}
+
+export default function HistorySection({ transactions = TRANSACTION_HISTORY, isLoading = false }: HistorySectionProps) {
   const [activeTab, setActiveTab] = useState<TabType>('income');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('Semua');
   const [showReportModal, setShowReportModal] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const filteredData = useMemo(() => {
-    return TRANSACTION_HISTORY.filter(item => {
+    return transactions.filter(item => {
       const isIncome = activeTab === 'income';
       const itemTypeMatch = isIncome ? item.type === 'Payment' : item.type === 'Withdraw';
       let timeMatch = true; 
-      if (timeFilter === 'Hari Ini') timeMatch = item.time.includes(':'); 
+      if (timeFilter === 'Hari Ini') timeMatch = item.time?.includes(':') || item.timestamp; 
       return itemTypeMatch && timeMatch;
     });
-  }, [activeTab, timeFilter]);
+  }, [activeTab, timeFilter, transactions]);
 
   const totalAmount = useMemo(() => {
     return filteredData.reduce((acc, curr) => acc + curr.amount, 0);
