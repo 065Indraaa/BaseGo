@@ -60,12 +60,15 @@ export async function approveToken(
   tokenAddress: Address,
   spenderAddress: Address,
   amount: string,
+  account: Address,
   walletClient: WalletClient
 ): Promise<string> {
   const decimals = TOKEN_DECIMALS[tokenAddress as keyof typeof TOKEN_DECIMALS] || 18;
   const amountInUnits = parseUnits(amount, decimals);
 
   const hash = await walletClient.writeContract({
+    chain: base,
+    account: account,
     address: tokenAddress,
     abi: ERC20_ABI,
     functionName: 'approve',
@@ -96,6 +99,7 @@ export async function executeSwapToIDRX(
     tokenAddress,
     MERCHANT_ROUTER_ADDRESS as Address,
     amount,
+    merchantAddress,
     walletClient
   );
 
@@ -104,6 +108,7 @@ export async function executeSwapToIDRX(
 
   // Execute swap
   const hash = await walletClient.writeContract({
+    chain: base,
     account: merchantAddress,
     address: MERCHANT_ROUTER_ADDRESS as Address,
     abi: MERCHANT_ROUTER_ABI,
