@@ -14,10 +14,36 @@ import {
   Identity, 
   EthBalance 
 } from '@coinbase/onchainkit/identity';
-import { ArrowRight, Zap, ShieldCheck, TrendingUp, ChevronRight, Store, Globe } from 'lucide-react';
+import { ArrowRight, Zap, ShieldCheck, TrendingUp, ChevronRight, Store, Globe, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAccount } from 'wagmi';
+import { useState } from 'react';
+import { useAuth } from '@/app/lib/authContext';
+import Dashboard from './Dashboard';
 
 export default function LandingPage() {
+  const { address, isConnected } = useAccount();
+  const { isMerchant } = useAuth();
+  const [merchantName, setMerchantName] = useState('');
+  const [showMerchantForm, setShowMerchantForm] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+
+  // Register merchant
+  const handleRegisterMerchant = () => {
+    if (address && merchantName.trim()) {
+      localStorage.setItem(
+        `merchant_${address}`,
+        JSON.stringify({ name: merchantName, registeredAt: new Date().toISOString() })
+      );
+      setShowDashboard(true);
+      setShowMerchantForm(false);
+    }
+  };
+
+  // Jika sudah login sebagai merchant, tampilkan dashboard
+  if (isConnected && isMerchant && showDashboard) {
+    return <Dashboard />;
+  }
   return (
     <div className="min-h-screen bg-[#0f172a] text-white font-sans selection:bg-indigo-500 selection:text-white overflow-hidden relative">
       
@@ -76,13 +102,67 @@ export default function LandingPage() {
                 </p>
                 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                   <button className="h-14 px-8 rounded-full bg-white text-slate-900 font-bold text-lg hover:bg-indigo-50 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] flex items-center gap-2 group">
-                      Mulai Sekarang <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform"/>
-                   </button>
+                   {!isConnected ? (
+                     <div className="bg-white/10 hover:bg-white/20 transition rounded-full p-1 pr-4 pl-4">
+                       <Wallet>
+                         <ConnectWallet className="bg-transparent hover:bg-transparent text-white font-bold text-lg px-4 py-3">
+                           <Avatar className="h-6 w-6" />
+                           <Name className="text-white" />
+                         </ConnectWallet>
+                       </Wallet>
+                     </div>
+                   ) : !isMerchant && !showMerchantForm ? (
+                     <button 
+                       onClick={() => setShowMerchantForm(true)}
+                       className="h-14 px-8 rounded-full bg-white text-slate-900 font-bold text-lg hover:bg-indigo-50 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] flex items-center gap-2 group"
+                     >
+                       Daftar Sebagai Merchant <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform"/>
+                     </button>
+                   ) : null}
                    <button className="h-14 px-8 rounded-full bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-md flex items-center gap-2">
                       <Globe size={20}/> Pelajari Cara Kerja
                    </button>
                 </div>
+
+                {/* Merchant Registration Form */}
+                {showMerchantForm && isConnected && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-12 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 max-w-md mx-auto"
+                  >
+                    <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                      <Store size={24} className="text-indigo-400" />
+                      Daftar Merchant Baru
+                    </h3>
+                    <p className="text-slate-400 text-sm mb-6">
+                      Masukkan nama bisnis Anda untuk mulai menerima pembayaran crypto
+                    </p>
+                    <input
+                      type="text"
+                      placeholder="Nama Toko/Bisnis Anda"
+                      value={merchantName}
+                      onChange={(e) => setMerchantName(e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-slate-400 mb-4 focus:outline-none focus:border-indigo-500"
+                    />
+                    <button
+                      onClick={handleRegisterMerchant}
+                      disabled={!merchantName.trim()}
+                      className="w-full h-12 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold transition-all"
+                    >
+                      Mulai Sekarang
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMerchantForm(false);
+                        setMerchantName('');
+                      }}
+                      className="w-full h-12 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 text-white font-bold transition-all mt-2"
+                    >
+                      Batal
+                    </button>
+                  </motion.div>
+                )}
             </motion.div>
         </div>
       </section>

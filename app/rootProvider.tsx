@@ -6,6 +6,7 @@ import { base } from 'viem/chains';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { coinbaseWallet } from 'wagmi/connectors';
 import { type ReactNode, useState } from 'react';
+import { AuthProvider } from './lib/authContext';
 
 // Pastikan membuat file .env.local berisi NEXT_PUBLIC_ONCHAINKIT_API_KEY=...
 const ONCHAINKIT_API_KEY = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY || '';
@@ -31,7 +32,9 @@ export function RootProvider({ children }: { children: ReactNode }) {
           apiKey={ONCHAINKIT_API_KEY}
           chain={base}
         >
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </OnchainKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
