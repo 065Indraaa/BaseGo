@@ -27,7 +27,6 @@ export default function RootLayout({
   return (
     <html lang="id">
       <head>
-        <link rel="stylesheet" href="/onchainkit.css" />
         <script dangerouslySetInnerHTML={{
           __html: `(function(){try{var host=typeof location!=='undefined'?location.hostname:'';if(!/localhost|127\\.0\\.1/.test(host))return;var blocked=['cca-lite.coinbase.com','cca.coinbase.com','coinbase.com/amp','cca-lite.coinbase.com/metrics'];var isBlocked=function(u){try{return blocked.some(function(b){return u&&u.indexOf(b)!==-1});}catch(e){return false}};if(window.fetch){var _f=window.fetch;window.fetch=function(input,init){var url=typeof input==='string'?input:(input&&input.url)||'';if(isBlocked(url))return Promise.resolve(new Response(null,{status:204}));return _f.apply(this,arguments);};}
         if(window.XMLHttpRequest){var X=XMLHttpRequest.prototype;var _open=X.open;X.open=function(method,url){try{if(isBlocked(url)){this.abort();return;} }catch(e){}return _open.apply(this,arguments);};}

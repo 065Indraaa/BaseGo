@@ -1,7 +1,48 @@
-﻿/* Removed onchainkit package import — include its stylesheet via CDN in layout.tsx if needed */
+﻿@import "https://fonts.googleapis.com/css2?family=Inter&display=swap";
+@import "https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap";
+@import "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz@0,9..40;1,9..40&display=swap";
+@import "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,700;1,9..40,700&display=swap";
+@import "https://fonts.googleapis.com/css2?family=Oxanium:wght@200..800&display=swap";
+@import "https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@100..900&display=swap";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* OnChainKit Theme Variables */
+:root {
+  --ock-radius-default: var(--radius-lg);
+  --ock-radius-inner: var(--radius-md);
+  --ock-font-family: "DM Sans", sans-serif;
+  --ock-foreground: oklch(13% .028 261.692);
+  --ock-foreground-muted: oklch(44.6% .03 256.802);
+  --ock-foreground-inverse: oklch(98.5% .002 247.839);
+  --ock-foreground-disabled: oklch(70.7% .022 261.325);
+  --ock-background: oklch(98.5% .002 247.839);
+  --ock-background-hover: oklch(92.8% .006 264.531);
+  --ock-background-active: oklch(87.2% .01 258.338);
+  --ock-background-alternate: oklch(92.8% .006 264.531);
+  --ock-background-alternate-hover: oklch(87.2% .01 258.338);
+  --ock-background-alternate-active: oklch(70.7% .022 261.325);
+  --ock-background-inverse: oklch(96.7% .003 264.542);
+  --ock-background-inverse-hover: oklch(92.8% .006 264.531);
+  --ock-background-inverse-active: oklch(87.2% .01 258.338);
+  --ock-background-reverse: oklch(13% .028 261.692);
+  --ock-primary: oklch(51.1% .262 276.966);
+  --ock-primary-hover: oklch(45.7% .24 277.023);
+  --ock-primary-active: oklch(39.8% .195 277.366);
+  --ock-primary-washed: oklch(93% .034 272.788);
+  --ock-primary-disabled: oklch(78.5% .115 274.713);
+  --ock-secondary: oklch(92.9% .013 255.508);
+  --ock-secondary-hover: oklch(86.9% .022 252.894);
+  --ock-secondary-active: oklch(70.4% .04 256.788);
+  --ock-error: oklch(58.6% .253 17.585);
+  --ock-warning: oklch(64.6% .222 41.116);
+  --ock-success: oklch(64.8% .2 131.684);
+  --ock-success-background: oklch(89.7% .196 126.665);
+  --ock-line: oklch(87.2% .01 258.338);
+  --ock-shadow-default: 0px 8px 12px 0px #5b616e1f;
+}
 
 @layer base {
   body {
