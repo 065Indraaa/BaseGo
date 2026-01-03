@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useMemo } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Calendar, FileText, Search, CheckCircle2, Clock, XCircle, Share2, Download, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

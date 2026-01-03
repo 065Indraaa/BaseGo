@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
 // PERBAIKAN: Menambahkan 'Landmark' ke dalam import

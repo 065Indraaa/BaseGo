@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Lock, X, Landmark, Loader2, Check } from 'lucide-react';
 import { formatIDRX } from '../lib/data';

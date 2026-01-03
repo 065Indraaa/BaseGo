@@ -1,19 +1,25 @@
-import type { NextConfig } from "next";
+﻿import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   webpack: (config) => {
     // 1. Mengatasi error modul Node.js yang hilang di browser
-    config.resolve.fallback = { fs: false, net: false, tls: false };
+    config.resolve = config.resolve || {};
+    config.resolve.fallback = { ...(config.resolve.fallback || {}), fs: false, net: false, tls: false };
 
-    // 2. Mengatasi error Metamask SDK & React Native
-    config.externals.push('pino-pretty', 'lokijs', 'encoding');
-
-    // 3. Khusus untuk error @react-native-async-storage
-    // Kita paksa webpack mengabaikan module ini karena kita di Web, bukan HP
+    // 2. Hindari bundling modul server-only di browser
     config.resolve.alias = {
-      ...config.resolve.alias,
+      ...(config.resolve.alias || {}),
       '@react-native-async-storage/async-storage': false,
+      'pino-pretty': false,
+      'lokijs': false,
+      'encoding': false,
     };
+
+    // 3. Tambahkan externals bila memungkinkan
+    if (Array.isArray(config.externals)) {
+      config.externals.push('pino-pretty', 'lokijs', 'encoding');
+    }
 
     return config;
   },

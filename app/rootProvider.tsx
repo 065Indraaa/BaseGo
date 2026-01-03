@@ -17,7 +17,7 @@ const wagmiConfig = createConfig({
       appName: 'BaseGo Merchant',
     }),
   ],
-  transports: [http()], // Fix: Format transport array/map yang benar
+  transports: { [base.id]: http() }, // Fix: Format transport array/map yang benar
 });
 
 export function RootProvider({ children }: { children: ReactNode }) {

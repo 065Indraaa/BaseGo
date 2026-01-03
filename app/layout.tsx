@@ -1,7 +1,6 @@
-import type { Metadata, Viewport } from 'next';
+﻿import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import '@coinbase/onchainkit/styles.css'; // Pastikan CSS OnchainKit terload
 import { RootProvider } from './rootProvider';
 
 const inter = Inter({ subsets: ['latin'] });
