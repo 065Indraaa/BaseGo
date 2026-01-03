@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import QRCode from 'react-qr-code';
 import {
   Send,
   Copy,
@@ -10,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TOKEN_ADDRESSES, TOKEN_NAMES } from '@/app/lib/contracts';
+import { TOKEN_ADDRESSES, TOKEN_NAMES, SWAP_FEE_PERCENTAGE } from '@/app/lib/contracts';
 
 interface PaymentRequestModalProps {
   onClose: () => void;
@@ -24,16 +25,21 @@ export default function PaymentRequestModal({
   exchangeRates,
 }: PaymentRequestModalProps) {
   const [selectedToken, setSelectedToken] = useState(TOKEN_ADDRESSES.USDT);
+  // `amount` is the desired IDRX the merchant wants to receive
   const [amount, setAmount] = useState('');
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const rate = exchangeRates[selectedToken] || 16000;
-  const estimatedIDRX = amount ? (parseFloat(amount) * rate).toFixed(2) : '0.00';
+  const feeFraction = SWAP_FEE_PERCENTAGE / 100;
+  const desiredIDRX = amount ? parseFloat(amount) : 0;
+  const requiredIDRXGross = desiredIDRX > 0 ? desiredIDRX / (1 - feeFraction) : 0;
+  const requiredTokenAmount = requiredIDRXGross > 0 ? requiredIDRXGross / rate : 0;
+  const tokenAmountDisplay = requiredTokenAmount ? requiredTokenAmount.toFixed(6) : '0.000000';
 
   const copyPaymentDetails = () => {
-    const details = `Kirim ${amount} ${TOKEN_NAMES[selectedToken]} ke ${merchantAddress}`;
+    const details = `Kirim ${tokenAmountDisplay} ${TOKEN_NAMES[selectedToken]} ke ${merchantAddress} (merchant menerima ${desiredIDRX.toFixed(2)} IDRX)`;
     navigator.clipboard.writeText(details);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -41,14 +47,22 @@ export default function PaymentRequestModal({
 
   const handleSubmit = async () => {
     if (!amount || isNaN(parseFloat(amount))) return;
-    
+
     setIsProcessing(true);
-    // Simulasi proses
-    setTimeout(() => {
-      setIsProcessing(false);
-      alert(`Request pembayaran ${amount} ${TOKEN_NAMES[selectedToken]} dibuat!`);
-      onClose();
-    }, 2000);
+
+    const payload = {
+      type: 'basego-pay',
+      merchant: merchantAddress,
+      token: selectedToken,
+      amountToken: tokenAmountDisplay,
+      desiredIDRX: desiredIDRX.toFixed(2),
+      feePercent: SWAP_FEE_PERCENTAGE,
+      network: 'base',
+    };
+
+    // show QR for payer dApp to scan and execute payment
+    setShowQR(true);
+    setIsProcessing(false);
   };
 
   return (
@@ -96,35 +110,57 @@ export default function PaymentRequestModal({
             </div>
           </div>
 
-          {/* Amount Input */}
+          {/* Amount Input (desired IDRX) */}
           <div className="mb-6">
             <label className="block text-sm font-bold text-slate-300 mb-2">
-              Jumlah {TOKEN_NAMES[selectedToken]}
+              Jumlah yang ingin diterima (IDRX)
             </label>
             <input
               type="number"
-              placeholder="Masukkan jumlah..."
+              placeholder="Masukkan jumlah IDRX yang diinginkan..."
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500"
             />
           </div>
 
-          {/* Estimated IDRX */}
+          {/* Summary & QR */}
           {amount && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 mb-6"
             >
-              <p className="text-sm text-slate-300 mb-1">Estimasi Penerimaan IDRX</p>
+              <p className="text-sm text-slate-300 mb-1">Ringkasan Permintaan</p>
               <p className="text-2xl font-bold text-emerald-300">
-                {estimatedIDRX} IDRX
+                Merchant ingin menerima: {desiredIDRX.toFixed(2)} IDRX
+              </p>
+              <p className="text-sm text-slate-200 mt-2">Biaya swap: {SWAP_FEE_PERCENTAGE}% (ditanggung pembayar)</p>
+              <p className="text-xs text-slate-400 mt-1">
+                Pembayar harus mengirim ≈ {tokenAmountDisplay} {TOKEN_NAMES[selectedToken]} (termasuk fee)
               </p>
               <p className="text-xs text-slate-400 mt-1">
-                @ {new Intl.NumberFormat('id-ID').format(rate)} IDRX per {TOKEN_NAMES[selectedToken]}
+                Kurs: {new Intl.NumberFormat('id-ID').format(rate)} IDRX per {TOKEN_NAMES[selectedToken]}
               </p>
             </motion.div>
+          )}
+
+          {showQR && amount && (
+            <div className="bg-white p-6 rounded-2xl border border-white/10 inline-block mb-6 shadow-xl">
+              <QRCode
+                value={JSON.stringify({
+                  type: 'basego-pay',
+                  merchant: merchantAddress,
+                  token: selectedToken,
+                  amountToken: tokenAmountDisplay,
+                  desiredIDRX: desiredIDRX.toFixed(2),
+                  feePercent: SWAP_FEE_PERCENTAGE,
+                  network: 'base',
+                })}
+                size={200}
+                className="rounded-xl"
+              />
+            </div>
           )}
 
           {/* Merchant Address */}

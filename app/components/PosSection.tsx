@@ -6,22 +6,53 @@ import QRCode from 'react-qr-code';
 import { Wallet, Lock, ArrowUpRight, Check, ChevronDown, X, Share2, Printer, AlertCircle, Delete, ScanLine, Landmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TOKENS, TRANSACTION_HISTORY, formatIDRX } from '../lib/data';
+import { TOKEN_ADDRESSES } from '@/app/lib/contracts';
 
 interface PosSectionProps {
-  kycStatus: string;
-  onOpenWithdraw: () => void;
-  setActiveTab: (tab: string) => void;
-  idrxBalance?: string;
-  isLoading?: boolean;
+    kycStatus: string;
+    onOpenWithdraw: () => void;
+    setActiveTab: (tab: string) => void;
+    idrxBalance?: string;
+    isLoading?: boolean;
+    merchantAddress?: string;
+    exchangeRates?: Record<string, number>;
 }
 
-export default function PosSection({ kycStatus, onOpenWithdraw, setActiveTab, idrxBalance = '0.00', isLoading = false }: PosSectionProps) {
-  const defaultToken = TOKENS && TOKENS.length > 0 ? TOKENS[0] : { 
-    id: 'idrx', name: 'IDR X', symbol: 'IDRX', price: 1, logo: '🇮🇩', color: 'bg-red-50 text-red-600 border-red-200' 
-  };
-  
-  const [amountIDR, setAmountIDR] = useState('');
-  const [selectedToken, setSelectedToken] = useState(defaultToken);
+export default function PosSection({ kycStatus, onOpenWithdraw, setActiveTab, idrxBalance = '0.00', isLoading = false, merchantAddress = '', exchangeRates = {} }: PosSectionProps) {
+    // Build tokens list from contract addresses and exchangeRates
+    const tokenList = [
+        {
+            address: TOKEN_ADDRESSES.IDRX,
+            id: 'idrx',
+            name: 'IDR X',
+            symbol: 'IDRX',
+            price: exchangeRates?.[TOKEN_ADDRESSES.IDRX] || 1,
+            logo: '🇮🇩',
+            isNative: true,
+        },
+        {
+            address: TOKEN_ADDRESSES.USDT,
+            id: 'usdt',
+            name: 'Tether',
+            symbol: 'USDT',
+            price: exchangeRates?.[TOKEN_ADDRESSES.USDT] || 0,
+            logo: '💵',
+            isNative: false,
+        },
+        {
+            address: TOKEN_ADDRESSES.USDC,
+            id: 'usdc',
+            name: 'USD Coin',
+            symbol: 'USDC',
+            price: exchangeRates?.[TOKEN_ADDRESSES.USDC] || 0,
+            logo: '💵',
+            isNative: false,
+        },
+    ];
+
+    const defaultToken = tokenList[0];
+    const [amountIDR, setAmountIDR] = useState('');
+    const [selectedToken, setSelectedToken] = useState<any>(defaultToken);
   const [showQR, setShowQR] = useState(false);
   const [isTokenSelectorOpen, setIsTokenSelectorOpen] = useState(false);
   const [bump, setBump] = useState(false);
@@ -214,7 +245,8 @@ export default function PosSection({ kycStatus, onOpenWithdraw, setActiveTab, id
                   <div className="w-12 h-12"></div>
               </div>
               <div className="bg-white p-6 rounded-[32px] border-2 border-slate-100 inline-block mb-6 shadow-xl shadow-slate-200/50">
-                  <QRCode value={`ethereum:${selectedToken.id === 'eth' ? '' : 'token-address' }?amount=${getCryptoAmount()}`} size={200} className="rounded-xl" />
+                  {/* QR encodes a simple payment URI containing merchant address, token contract, network and amount */}
+                  <QRCode value={`basego:pay?merchant=${merchantAddress}&token=${selectedToken.address || selectedToken.id}&amount=${getCryptoAmount()}&network=base`} size={200} className="rounded-xl" />
               </div>
               <h3 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">{getCryptoAmount()} <span className="text-2xl text-slate-400">{selectedToken.symbol}</span></h3>
               <p className="text-slate-500 font-bold text-sm mb-8 bg-slate-100 px-4 py-2 rounded-full inline-block">≈ Rp {formatIDRX(parseInt(amountIDR))}</p>

@@ -89,6 +89,18 @@ export const MERCHANT_ROUTER_ABI = [
     type: 'function',
   },
   {
+    inputs: [
+      { name: '_tokenIn', type: 'address' },
+      { name: '_amountIn', type: 'uint256' },
+      { name: '_merchant', type: 'address' },
+      { name: '_minIDRXOut', type: 'uint256' },
+    ],
+    name: 'payAndSwapToMerchant',
+    outputs: [{ name: 'merchantReceived', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
     inputs: [{ name: '_user', type: 'address' }],
     name: 'getMerchantBalance',
     outputs: [{ name: 'balance', type: 'uint256' }],

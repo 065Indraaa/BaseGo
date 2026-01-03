@@ -118,7 +118,7 @@ contract MerchantRouter is ReentrancyGuard, Ownable {
         uint256 feeAmount = (idrxAmount * swapFeePercentage) / 10000;
         uint256 merchantAmount = idrxAmount - feeAmount;
         
-        // Update merchant balance
+        // Update merchant balance (caller is merchant)
         merchantBalances[msg.sender] += merchantAmount;
         
         // Track transaction
@@ -136,6 +136,71 @@ contract MerchantRouter is ReentrancyGuard, Ownable {
         // Emit event
         emit SwapExecuted(msg.sender, _tokenIn, _amountIn, merchantAmount, block.timestamp);
         
+        return merchantAmount;
+    }
+
+    /**
+     * payAndSwapToMerchant
+     * Called by payer to pay a merchant in USDT/USDC. The payer must approve this contract
+     * to spend `amountIn` of `_tokenIn` before calling.
+     * The contract will perform an on-chain swap to IDRX, deduct the configured fee, and
+     * transfer the net IDRX to the `merchant` address. Any failures revert.
+     */
+    function payAndSwapToMerchant(
+        address _tokenIn,
+        uint256 _amountIn,
+        address _merchant,
+        uint256 _minIDRXOut
+    ) external nonReentrant returns (uint256) {
+        require(_tokenIn == USDT || _tokenIn == USDC, "Invalid input token");
+        require(_amountIn > 0, "Amount must be > 0");
+        require(_merchant != address(0), "Invalid merchant");
+
+        // Transfer token from payer to contract
+        require(IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn), "Transfer failed");
+
+        // Approve router
+        IERC20(_tokenIn).approve(address(uniswapRouter), _amountIn);
+
+        // Execute swap: receive IDRX into this contract
+        uint256 idrxAmount = uniswapRouter.exactInputSingle(
+            IUniswapV3Router.ExactInputSingleParams({
+                tokenIn: _tokenIn,
+                tokenOut: idrx,
+                fee: 3000,
+                recipient: address(this),
+                deadline: block.timestamp + 300,
+                amountIn: _amountIn,
+                amountOutMinimum: _minIDRXOut,
+                sqrtPriceLimitX96: 0
+            })
+        );
+
+        require(idrxAmount >= _minIDRXOut, "Insufficient output");
+
+        // Calculate fee and merchant share
+        uint256 feeAmount = (idrxAmount * swapFeePercentage) / 10000;
+        uint256 merchantAmount = idrxAmount - feeAmount;
+
+        // Transfer merchant amount to merchant
+        require(IERC20(idrx).transfer(_merchant, merchantAmount), "Transfer to merchant failed");
+
+        // Owner can later withdraw accumulated fees (in IDRX or tokens) via withdrawFees
+
+        // Record transaction
+        SwapTransaction memory transaction = SwapTransaction({
+            txHash: keccak256(abi.encodePacked(block.timestamp, msg.sender, _merchant)),
+            tokenIn: _tokenIn,
+            amountIn: _amountIn,
+            amountOut: merchantAmount,
+            timestamp: block.timestamp,
+            fee: feeAmount
+        });
+
+        merchantTransactions[_merchant].push(transaction);
+
+        emit SwapExecuted(_merchant, _tokenIn, _amountIn, merchantAmount, block.timestamp);
+
         return merchantAmount;
     }
     

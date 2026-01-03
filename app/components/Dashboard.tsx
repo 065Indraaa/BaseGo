@@ -123,7 +123,7 @@ export default function Dashboard() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
             >
-                {activeTab === 'pos' && <PosSection kycStatus={kycStatus} onOpenWithdraw={() => setIsWithdrawOpen(true)} setActiveTab={setActiveTab} idrxBalance={idrxBalance} isLoading={isLoading} />}
+                {activeTab === 'pos' && <PosSection kycStatus={kycStatus} onOpenWithdraw={() => setIsWithdrawOpen(true)} setActiveTab={setActiveTab} idrxBalance={idrxBalance} isLoading={isLoading} merchantAddress={address || ''} exchangeRates={exchangeRates} />}
                 {activeTab === 'history' && <HistorySection transactions={transactions} isLoading={isLoading} />}
                 {activeTab === 'invest' && <InvestSection />}
                 {activeTab === 'account' && (
