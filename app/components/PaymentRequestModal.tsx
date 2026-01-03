@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TOKEN_ADDRESSES, TOKEN_NAMES, SWAP_FEE_PERCENTAGE } from '@/app/lib/contracts';
+import { getOnchainKitQuote } from '@/app/lib/blockchain';
 
 interface PaymentRequestModalProps {
   onClose: () => void;
@@ -49,14 +50,18 @@ export default function PaymentRequestModal({
     if (!amount || isNaN(parseFloat(amount))) return;
 
     setIsProcessing(true);
+    // Fetch quote / swap path from OnChainKit (or fallback)
+    const quote = await getOnchainKitQuote(selectedToken as `0x${string}`, desiredIDRX);
 
     const payload = {
       type: 'basego-pay',
       merchant: merchantAddress,
       token: selectedToken,
-      amountToken: tokenAmountDisplay,
+      amountToken: quote.amountIn,
       desiredIDRX: desiredIDRX.toFixed(2),
       feePercent: SWAP_FEE_PERCENTAGE,
+      swapPath: quote.swapPath,
+      minOut: quote.minOut,
       network: 'base',
     };
 

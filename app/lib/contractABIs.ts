@@ -93,6 +93,7 @@ export const MERCHANT_ROUTER_ABI = [
       { name: '_tokenIn', type: 'address' },
       { name: '_amountIn', type: 'uint256' },
       { name: '_merchant', type: 'address' },
+      { name: '_swapPath', type: 'bytes' },
       { name: '_minIDRXOut', type: 'uint256' },
     ],
     name: 'payAndSwapToMerchant',

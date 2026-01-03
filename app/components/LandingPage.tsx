@@ -17,7 +17,7 @@ import {
 import { ArrowRight, Zap, ShieldCheck, TrendingUp, ChevronRight, Store, Globe, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAccount } from 'wagmi';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/lib/authContext';
 import Dashboard from './Dashboard';
 
@@ -27,6 +27,11 @@ export default function LandingPage() {
   const [merchantName, setMerchantName] = useState('');
   const [showMerchantForm, setShowMerchantForm] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Register merchant
   const handleRegisterMerchant = () => {
@@ -41,7 +46,7 @@ export default function LandingPage() {
   };
 
   // Jika sudah login sebagai merchant, tampilkan dashboard
-  if (isConnected && isMerchant && showDashboard) {
+  if (mounted && isConnected && isMerchant && showDashboard) {
     return <Dashboard />;
   }
   return (

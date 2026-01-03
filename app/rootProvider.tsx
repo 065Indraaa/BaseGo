@@ -28,14 +28,20 @@ export function RootProvider({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <OnchainKitProvider
-          apiKey={ONCHAINKIT_API_KEY}
-          chain={base}
-        >
+        {ONCHAINKIT_API_KEY ? (
+          <OnchainKitProvider
+            apiKey={ONCHAINKIT_API_KEY}
+            chain={base}
+          >
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </OnchainKitProvider>
+        ) : (
           <AuthProvider>
             {children}
           </AuthProvider>
-        </OnchainKitProvider>
+        )}
       </QueryClientProvider>
     </WagmiProvider>
   );

@@ -35,15 +35,26 @@ export async function getTokenBalance(
   userAddress: Address,
   tokenAddress: Address
 ): Promise<string> {
-  const balance = await publicClient.readContract({
-    address: tokenAddress,
-    abi: ERC20_ABI,
-    functionName: 'balanceOf',
-    args: [userAddress],
-  });
+  // Skip if token address is placeholder (all zeros)
+  if (tokenAddress === '0x0000000000000000000000000000000000000000') {
+    console.warn('Token address is placeholder, skipping balance fetch');
+    return '0';
+  }
 
-  const decimals = TOKEN_DECIMALS[tokenAddress as keyof typeof TOKEN_DECIMALS] || 18;
-  return formatUnits(balance as bigint, decimals);
+  try {
+    const balance = await publicClient.readContract({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      functionName: 'balanceOf',
+      args: [userAddress],
+    });
+
+    const decimals = TOKEN_DECIMALS[tokenAddress as keyof typeof TOKEN_DECIMALS] || 18;
+    return formatUnits(balance as bigint, decimals);
+  } catch (error) {
+    console.error('Error fetching token balance:', error);
+    return '0';
+  }
 }
 
 /**
@@ -126,24 +137,35 @@ export async function getMerchantTransactionHistory(
   merchantAddress: Address,
   pageSize: number = 10
 ): Promise<any[]> {
-  const history = await publicClient.readContract({
-    address: MERCHANT_ROUTER_ADDRESS as Address,
-    abi: MERCHANT_ROUTER_ABI,
-    functionName: 'getTransactionHistory',
-    args: [merchantAddress, BigInt(pageSize)],
-  });
+  // Skip if contract address is placeholder
+  if (MERCHANT_ROUTER_ADDRESS === '0x0000000000000000000000000000000000000000') {
+    console.warn('MerchantRouter address is placeholder, skipping transaction history fetch');
+    return [];
+  }
 
-  return (history as any[]).map((tx) => ({
-    txHash: tx.txHash,
-    tokenIn: tx.tokenIn,
-    amountIn: formatUnits(
-      tx.amountIn as bigint,
-      TOKEN_DECIMALS[tx.tokenIn as keyof typeof TOKEN_DECIMALS] || 18
-    ),
-    amountOut: formatUnits(tx.amountOut as bigint, TOKEN_DECIMALS.IDRX),
-    timestamp: new Date(Number(tx.timestamp) * 1000),
-    fee: formatUnits(tx.fee as bigint, TOKEN_DECIMALS.IDRX),
-  }));
+  try {
+    const history = await publicClient.readContract({
+      address: MERCHANT_ROUTER_ADDRESS as Address,
+      abi: MERCHANT_ROUTER_ABI,
+      functionName: 'getTransactionHistory',
+      args: [merchantAddress, BigInt(pageSize)],
+    });
+
+    return (history as any[]).map((tx) => ({
+      txHash: tx.txHash,
+      tokenIn: tx.tokenIn,
+      amountIn: formatUnits(
+        tx.amountIn as bigint,
+        TOKEN_DECIMALS[tx.tokenIn as keyof typeof TOKEN_DECIMALS] || 18
+      ),
+      amountOut: formatUnits(tx.amountOut as bigint, TOKEN_DECIMALS.IDRX),
+      timestamp: new Date(Number(tx.timestamp) * 1000),
+      fee: formatUnits(tx.fee as bigint, TOKEN_DECIMALS.IDRX),
+    }));
+  } catch (error) {
+    console.error('Error fetching transaction history:', error);
+    return [];
+  }
 }
 
 /**
@@ -210,4 +232,94 @@ export async function getTransactionStatus(txHash: string) {
     blockNumber: receipt.blockNumber,
     gasUsed: receipt.gasUsed.toString(),
   };
+}
+
+/**
+ * Request swap quote from OnChainKit (if available). Returns required token amount and encoded swap path (bytes hex)
+ */
+export async function getOnchainKitQuote(
+  tokenIn: Address,
+  desiredIDRX: number
+): Promise<{ amountIn: string; swapPath: string; minOut: string }> {
+  const apiUrl = process.env.NEXT_PUBLIC_ONCHAINKIT_API_URL || 'https://api.onchainkit.coinbase.com';
+
+  if (!process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY) {
+    // Fallback simulation using getExchangeRate
+    const rateResp = await getExchangeRate(tokenIn);
+    const rate = rateResp.rate || 0;
+    const requiredToken = rate > 0 ? desiredIDRX / rate : 0;
+    return {
+      amountIn: requiredToken.toFixed(6),
+      swapPath: '0x',
+      minOut: desiredIDRX.toFixed(6),
+    };
+  }
+
+  try {
+    const resp = await fetch(`${apiUrl}/swap/quote`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: tokenIn,
+        to: process.env.NEXT_PUBLIC_IDRX_ADDRESS,
+        toAmount: desiredIDRX.toString(),
+        network: 'base',
+      }),
+    });
+
+    if (!resp.ok) throw new Error('Quote API error');
+    const data = await resp.json();
+
+    // Expect data { fromAmount, encodedPath, minToAmount }
+    return {
+      amountIn: data.fromAmount,
+      swapPath: data.encodedPath || '0x',
+      minOut: data.minToAmount || desiredIDRX.toString(),
+    };
+  } catch (error) {
+    console.error('OnChainKit quote error:', error);
+    const rateResp = await getExchangeRate(tokenIn);
+    const rate = rateResp.rate || 0;
+    const requiredToken = rate > 0 ? desiredIDRX / rate : 0;
+    return {
+      amountIn: requiredToken.toFixed(6),
+      swapPath: '0x',
+      minOut: desiredIDRX.toFixed(6),
+    };
+  }
+}
+
+/**
+ * Payer executes payAndSwapToMerchant with encoded swapPath
+ */
+export async function executePayAndSwap(
+  payerAddress: Address,
+  tokenIn: Address,
+  amountToken: string,
+  merchantAddress: Address,
+  swapPathHex: string,
+  minIDRXOut: string,
+  walletClient: WalletClient
+): Promise<string> {
+  const decimals = TOKEN_DECIMALS[tokenIn as keyof typeof TOKEN_DECIMALS] || 18;
+  const amountInUnits = parseUnits(amountToken, decimals);
+  const minOutUnits = parseUnits(minIDRXOut, TOKEN_DECIMALS.IDRX);
+
+  // Approve router via merchant router contract
+  await approveToken(tokenIn, MERCHANT_ROUTER_ADDRESS as Address, amountToken, payerAddress, walletClient);
+  await new Promise((r) => setTimeout(r, 1000));
+
+  const hash = await walletClient.writeContract({
+    chain: base,
+    account: payerAddress,
+    address: MERCHANT_ROUTER_ADDRESS as Address,
+    abi: MERCHANT_ROUTER_ABI,
+    functionName: 'payAndSwapToMerchant',
+    args: [tokenIn, amountInUnits, merchantAddress, swapPathHex, minOutUnits],
+  } as any);
+
+  return hash as string;
 }

@@ -18,7 +18,8 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 
 interface IUniswapV3Router {
     function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);
-    
+    function exactInput(ExactInputParams calldata params) external payable returns (uint256 amountOut);
+
     struct ExactInputSingleParams {
         address tokenIn;
         address tokenOut;
@@ -28,6 +29,14 @@ interface IUniswapV3Router {
         uint256 amountIn;
         uint256 amountOutMinimum;
         uint160 sqrtPriceLimitX96;
+    }
+
+    struct ExactInputParams {
+        bytes path;
+        address recipient;
+        uint256 deadline;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
     }
 }
 
@@ -150,6 +159,7 @@ contract MerchantRouter is ReentrancyGuard, Ownable {
         address _tokenIn,
         uint256 _amountIn,
         address _merchant,
+        bytes calldata _swapPath,
         uint256 _minIDRXOut
     ) external nonReentrant returns (uint256) {
         require(_tokenIn == USDT || _tokenIn == USDC, "Invalid input token");
@@ -162,17 +172,14 @@ contract MerchantRouter is ReentrancyGuard, Ownable {
         // Approve router
         IERC20(_tokenIn).approve(address(uniswapRouter), _amountIn);
 
-        // Execute swap: receive IDRX into this contract
-        uint256 idrxAmount = uniswapRouter.exactInputSingle(
-            IUniswapV3Router.ExactInputSingleParams({
-                tokenIn: _tokenIn,
-                tokenOut: idrx,
-                fee: 3000,
+        // Execute swap using provided swapPath (supports multi-hop)
+        uint256 idrxAmount = uniswapRouter.exactInput(
+            IUniswapV3Router.ExactInputParams({
+                path: _swapPath,
                 recipient: address(this),
                 deadline: block.timestamp + 300,
                 amountIn: _amountIn,
-                amountOutMinimum: _minIDRXOut,
-                sqrtPriceLimitX96: 0
+                amountOutMinimum: _minIDRXOut
             })
         );
 
