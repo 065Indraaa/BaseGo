@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react';
 import { Store, History, PieChart, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
+import { type Hex } from 'viem';
 import { useAuth } from '@/app/lib/authContext';
 import {
-  getMerchantIDRXBalance,
+  getTokenBalance,
   getMerchantTransactionHistory,
   getExchangeRate,
 } from '@/app/lib/blockchain';
-import { TOKEN_ADDRESSES } from '@/app/lib/contracts';
+import { TOKENS } from '@/app/lib/contracts';
 
 // Import Components
 import PosSection from './PosSection';
@@ -57,28 +58,28 @@ export default function Dashboard() {
         setIsLoading(true);
 
         // Get IDRX balance
-        const balance = await getMerchantIDRXBalance(address);
+        const balance = await getTokenBalance(address as Hex, TOKENS.IDRX as Hex);
         setIDRXBalance(balance);
 
         // Get transaction history (last 10)
-        const history = await getMerchantTransactionHistory(address, 10);
-        setTransactions(history || []);
+        const history = await getMerchantTransactionHistory(address as Hex);
+        setTransactions(history.slice(0, 10) || []);
 
         // Get exchange rates for USDT and USDC
         const rates: Record<string, number> = {};
         try {
-          const usdtRate = await getExchangeRate(TOKEN_ADDRESSES.USDT as `0x${string}`);
-          rates[TOKEN_ADDRESSES.USDT] = usdtRate.rate;
+          const usdtRate = await getExchangeRate('USDT');
+          rates[TOKENS.USDT.toLowerCase()] = usdtRate;
         } catch (e) {
           console.log('Could not fetch USDT rate:', e);
-          rates[TOKEN_ADDRESSES.USDT] = 0;
+          rates[TOKENS.USDT.toLowerCase()] = 0;
         }
         try {
-          const usdcRate = await getExchangeRate(TOKEN_ADDRESSES.USDC as `0x${string}`);
-          rates[TOKEN_ADDRESSES.USDC] = usdcRate.rate;
+          const usdcRate = await getExchangeRate('USDC');
+          rates[TOKENS.USDC.toLowerCase()] = usdcRate;
         } catch (e) {
           console.log('Could not fetch USDC rate:', e);
-          rates[TOKEN_ADDRESSES.USDC] = 0;
+          rates[TOKENS.USDC.toLowerCase()] = 0;
         }
         setExchangeRates(rates);
       } catch (error) {

@@ -1,42 +1,38 @@
-/**
- * Smart Contract Constants untuk Base Network (Mainnet)
- * Semua address adalah kontrak resmi di Base Mainnet
+/*
+ * Konfigurasi kontrak dan token untuk BaseGo.
+ * USDC native: 0x833589...; USDT bridged: 0xfde4C9...; IDRX: alamat resmi.
  */
 
-// Token Contracts di Base
-export const TOKEN_ADDRESSES = {
-  // USDT (Tether) di Base Mainnet
-  USDT: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-  
-  // USDC (USD Coin) di Base Mainnet  
-  USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-  
-  // IDRX (Stablecoin IDR) - Placeholder, ganti dengan kontrak yang sebenarnya
-  IDRX: '0x0000000000000000000000000000000000000000', // TODO: Ganti dengan address kontrak IDRX Anda
+export const TOKENS = {
+  USDT:
+    (process.env.NEXT_PUBLIC_USDT_TOKEN_ADDRESS as string) ||
+    '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
+  USDC:
+    (process.env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS as string) ||
+    '0x833589fCD6eDb6E08f4c7C32D4f71b54BDA02913',
+  IDRX:
+    (process.env.NEXT_PUBLIC_IDRX_TOKEN_ADDRESS as string) ||
+    '0x18Bc5bcC660cf2B9cE3cd51a404aFe1a0cBD3C22',
+} as const;
+
+/** Alamat kontrak router – harus diisi via .env */
+export const MERCHANT_ROUTER_ADDRESS = process.env
+  .NEXT_PUBLIC_MERCHANT_ROUTER_ADDRESS as string | undefined;
+
+/** URL RPC Base (fallback ke mainnet) */
+export const BASE_RPC_URL =
+  process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
+
+/** Desimal token berdasarkan alamat (lowercase) */
+export const TOKEN_DECIMALS: Record<string, number> = {
+  [TOKENS.USDT.toLowerCase()]: 6,
+  [TOKENS.USDC.toLowerCase()]: 6,
+  [TOKENS.IDRX.toLowerCase()]: 18,
 };
 
-// Merchant Payment Router - Smart Contract untuk handle swaps & payments
-export const MERCHANT_ROUTER_ADDRESS = '0x0000000000000000000000000000000000000000'; // TODO: Deploy kontrak router Anda
-
-// Uniswap V3 Router (untuk swap di Base)
-export const UNISWAP_V3_ROUTER = '0x2626664c2603336E57B271c5C0b26F421741e481';
-
-// Base Network RPC
-export const BASE_RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC || 'https://mainnet.base.org';
-
-// Decimals untuk token
-export const TOKEN_DECIMALS = {
-  USDT: 6,
-  USDC: 6,
-  IDRX: 18,
-};
-
-// Nama display
+/** Nama token untuk tampilan */
 export const TOKEN_NAMES: Record<string, string> = {
-  [TOKEN_ADDRESSES.USDT]: 'USDT',
-  [TOKEN_ADDRESSES.USDC]: 'USDC',
-  [TOKEN_ADDRESSES.IDRX]: 'IDRX',
+  [TOKENS.USDT.toLowerCase()]: 'USDT',
+  [TOKENS.USDC.toLowerCase()]: 'USDC',
+  [TOKENS.IDRX.toLowerCase()]: 'IDRX',
 };
-
-// Fee configuration
-export const SWAP_FEE_PERCENTAGE = 0.5; // 0.5% fee untuk transaksi

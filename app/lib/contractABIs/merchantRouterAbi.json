@@ -1,0 +1,27 @@
+[
+  {
+    "inputs": [
+      { "internalType": "address", "name": "tokenIn", "type": "address" },
+      { "internalType": "uint256", "name": "amountIn", "type": "uint256" }
+    ],
+    "name": "swapToIDRX",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [ {"internalType":"address","name":"token","type":"address"}, {"internalType":"uint256","name":"amount","type":"uint256"}, {"internalType":"address","name":"merchant","type":"address"} ],
+    "name": "payAndSwapToMerchant",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [ {"internalType":"address","name":"merchant","type":"address"} ],
+    "name": "getTransactionHistory",
+    "outputs": [ {"components": [ {"internalType":"address","name":"token","type":"address"}, {"internalType":"uint256","name":"amount","type":"uint256"}, {"internalType":"uint256","name":"timestamp","type":"uint256"}, {"internalType":"bytes32","name":"txHash","type":"bytes32"} ], "internalType":"struct MerchantRouter.Transaction[]", "type":"tuple[]"} ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  { "inputs": [], "name": "withdrawIDRX", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+]

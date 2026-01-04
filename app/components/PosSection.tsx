@@ -5,8 +5,8 @@ import QRCode from 'react-qr-code';
 // PERBAIKAN: Menambahkan 'Landmark' ke dalam import
 import { Wallet, Lock, ArrowUpRight, Check, ChevronDown, X, Share2, Printer, AlertCircle, Delete, ScanLine, Landmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TOKENS, TRANSACTION_HISTORY, formatIDRX } from '../lib/data';
-import { TOKEN_ADDRESSES } from '@/app/lib/contracts';
+import { TOKENS } from '../lib/data';
+import { TOKENS as CONTRACT_TOKENS } from '@/app/lib/contracts';
 
 interface PosSectionProps {
     kycStatus: string;
@@ -22,29 +22,29 @@ export default function PosSection({ kycStatus, onOpenWithdraw, setActiveTab, id
     // Build tokens list from contract addresses and exchangeRates
     const tokenList = [
         {
-            address: TOKEN_ADDRESSES.IDRX,
+            address: CONTRACT_TOKENS.IDRX,
             id: 'idrx',
             name: 'IDR X',
             symbol: 'IDRX',
-            price: exchangeRates?.[TOKEN_ADDRESSES.IDRX] || 1,
+            price: exchangeRates?.[CONTRACT_TOKENS.IDRX.toLowerCase()] || 1,
             logo: '🇮🇩',
             isNative: true,
         },
         {
-            address: TOKEN_ADDRESSES.USDT,
+            address: CONTRACT_TOKENS.USDT,
             id: 'usdt',
             name: 'Tether',
             symbol: 'USDT',
-            price: exchangeRates?.[TOKEN_ADDRESSES.USDT] || 0,
+            price: exchangeRates?.[CONTRACT_TOKENS.USDT.toLowerCase()] || 0,
             logo: '💵',
             isNative: false,
         },
         {
-            address: TOKEN_ADDRESSES.USDC,
+            address: CONTRACT_TOKENS.USDC,
             id: 'usdc',
             name: 'USD Coin',
             symbol: 'USDC',
-            price: exchangeRates?.[TOKEN_ADDRESSES.USDC] || 0,
+            price: exchangeRates?.[CONTRACT_TOKENS.USDC.toLowerCase()] || 0,
             logo: '💵',
             isNative: false,
         },
@@ -65,7 +65,7 @@ export default function PosSection({ kycStatus, onOpenWithdraw, setActiveTab, id
     }
   }, [amountIDR]);
 
-  if (!TOKENS || TOKENS.length === 0) return null;
+  // Removed: if (!TOKENS || TOKENS.length === 0) return null; // This check was for the dummy TOKENS array and is no longer relevant.
 
   const getCryptoAmount = () => {
     if (!amountIDR) return '0';

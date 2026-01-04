@@ -1,325 +1,213 @@
 /**
- * Utility functions untuk blockchain interactions
- * Using viem untuk Base network
+ * Utility fungsi blockchain untuk BaseGo. Fungsi mencakup:
+ * - Membaca saldo token ERC-20
+ * - Memberikan approval untuk token
+ * - Melakukan swap stablecoin ke IDRX
+ * - Membayar merchant sekaligus swap
+ * - Mengambil riwayat transaksi merchant
+ *
+ * Pastikan TSConfig Anda mengecualikan `node_modules` agar tidak mencoba membaca tsconfig dari dependency.
  */
 
 import {
   createPublicClient,
-  createWalletClient,
   http,
-  parseUnits,
-  formatUnits,
-  type Address,
-  type PublicClient,
+  type Abi,
   type WalletClient,
+  type Hex,
 } from 'viem';
 import { base } from 'viem/chains';
+import { erc20Abi } from 'viem';
+import routerAbiJson from './contractABIs/merchantRouterAbi.json';
 import {
-  TOKEN_ADDRESSES,
-  TOKEN_DECIMALS,
   BASE_RPC_URL,
+  TOKENS,
+  TOKEN_DECIMALS,
+  TOKEN_NAMES,
   MERCHANT_ROUTER_ADDRESS,
 } from './contracts';
-import { ERC20_ABI, MERCHANT_ROUTER_ABI } from './contractABIs';
 
-// Initialize clients
+/** Cast JSON ABI ke tipe Abi untuk memenuhi TypeScript */
+const MERCHANT_ROUTER_ABI = routerAbiJson as Abi;
+
+/** Inisialisasi public client hanya satu kali */
 const publicClient = createPublicClient({
   chain: base,
   transport: http(BASE_RPC_URL),
 });
 
-/**
- * Get token balance untuk user
- */
-export async function getTokenBalance(
-  userAddress: Address,
-  tokenAddress: Address
-): Promise<string> {
-  // Skip if token address is placeholder (all zeros)
-  if (tokenAddress === '0x0000000000000000000000000000000000000000') {
-    console.warn('Token address is placeholder, skipping balance fetch');
-    return '0';
-  }
+/** Format bigint ke string berdasarkan desimal token */
+function formatTokenAmount(amount: bigint, tokenAddress: string): string {
+  const decimals = TOKEN_DECIMALS[tokenAddress.toLowerCase()] ?? 18;
+  const divisor = BigInt(10) ** BigInt(decimals);
+  const integer = amount / divisor;
+  const fraction = amount % divisor;
+  const fractionStr = fraction.toString().padStart(decimals, '0').replace(/0+$/, '');
+  return fractionStr ? `${integer}.${fractionStr}` : integer.toString();
+}
 
-  try {
-    const balance = await publicClient.readContract({
-      address: tokenAddress,
-      abi: ERC20_ABI,
-      functionName: 'balanceOf',
-      args: [userAddress],
-    });
-
-    const decimals = TOKEN_DECIMALS[tokenAddress as keyof typeof TOKEN_DECIMALS] || 18;
-    return formatUnits(balance as bigint, decimals);
-  } catch (error) {
-    console.error('Error fetching token balance:', error);
-    return '0';
+/** Tunggu receipt transaksi, lempar error bila status bukan sukses */
+async function waitForTx(hash: Hex) {
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== 'success') {
+    throw new Error(`Transaksi ${hash} gagal dengan status ${receipt.status}`);
   }
 }
 
-/**
- * Get merchant IDRX balance
- */
-export async function getMerchantIDRXBalance(merchantAddress: Address): Promise<string> {
-  return getTokenBalance(merchantAddress, TOKEN_ADDRESSES.IDRX as Address);
-}
-
-/**
- * Approve token untuk spending
- */
-export async function approveToken(
-  tokenAddress: Address,
-  spenderAddress: Address,
-  amount: string,
-  account: Address,
-  walletClient: WalletClient
-): Promise<string> {
-  const decimals = TOKEN_DECIMALS[tokenAddress as keyof typeof TOKEN_DECIMALS] || 18;
-  const amountInUnits = parseUnits(amount, decimals);
+/** Approve router untuk membelanjakan token caller */
+async function approveToken(
+  walletClient: WalletClient,
+  tokenAddress: Hex,
+  amount: bigint,
+): Promise<Hex> {
+  if (!MERCHANT_ROUTER_ADDRESS) {
+    throw new Error('Merchant router belum dikonfigurasi.');
+  }
+  const account = walletClient.account;
+  if (!account) {
+    throw new Error('Wallet client tidak terhubung ke account.');
+  }
 
   const hash = await walletClient.writeContract({
     chain: base,
-    account: account,
+    account,
     address: tokenAddress,
-    abi: ERC20_ABI,
+    abi: erc20Abi,
     functionName: 'approve',
-    args: [spenderAddress, amountInUnits],
+    args: [MERCHANT_ROUTER_ADDRESS as Hex, amount],
   });
-
   return hash;
 }
 
-/**
- * Execute swap USDT/USDC -> IDRX
- */
-export async function executeSwapToIDRX(
-  merchantAddress: Address,
-  tokenAddress: Address,
-  amount: string,
-  walletClient: WalletClient,
-  minIDRXAmount?: string
+/** Ambil saldo ERC‑20 milik owner untuk address tertentu */
+export async function getTokenBalance(
+  owner: Hex,
+  tokenAddress: Hex,
 ): Promise<string> {
-  const decimals = TOKEN_DECIMALS[tokenAddress as keyof typeof TOKEN_DECIMALS] || 18;
-  const amountInUnits = parseUnits(amount, decimals);
-  const minAmount = minIDRXAmount
-    ? parseUnits(minIDRXAmount, TOKEN_DECIMALS.IDRX)
-    : parseUnits('0', TOKEN_DECIMALS.IDRX);
+  const balance: bigint = await publicClient.readContract({
+    address: tokenAddress,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [owner],
+  });
+  return formatTokenAmount(balance, tokenAddress);
+}
 
-  // Approve dulu sebelum swap
-  await approveToken(
-    tokenAddress,
-    MERCHANT_ROUTER_ADDRESS as Address,
-    amount,
-    merchantAddress,
-    walletClient
-  );
+/** Ambil riwayat transaksi merchant */
+export async function getMerchantTransactionHistory(
+  merchant: Hex,
+): Promise<
+  {
+    txHash: Hex;
+    token: string;
+    amount: string;
+    timestamp: bigint;
+  }[]
+> {
+  if (!MERCHANT_ROUTER_ADDRESS) {
+    return [];
+  }
+  const raw = (await publicClient.readContract({
+    address: MERCHANT_ROUTER_ADDRESS as Hex,
+    abi: MERCHANT_ROUTER_ABI,
+    functionName: 'getTransactionHistory',
+    args: [merchant],
+  })) as unknown as any[];
 
-  // Tunggu approval tercatat
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  return raw.map((entry) => {
+    const [tokenAddr, amountBn, timestampBn, txHash] = entry;
+    const tokenName = TOKEN_NAMES[(tokenAddr as string).toLowerCase()] ?? 'UNKNOWN';
+    const amountStr = formatTokenAmount(amountBn as bigint, tokenAddr as string);
+    return {
+      txHash: txHash as Hex,
+      token: tokenName,
+      amount: amountStr,
+      timestamp: timestampBn as bigint,
+    };
+  });
+}
 
-  // Execute swap
-  const hash = await walletClient.writeContract({
+/** Swap USDT/USDC ke IDRX via router */
+export async function executeSwapToIDRX(
+  walletClient: WalletClient,
+  tokenSymbol: keyof typeof TOKENS,
+  amount: string,
+): Promise<Hex> {
+  if (!MERCHANT_ROUTER_ADDRESS) {
+    throw new Error('Merchant router belum dikonfigurasi.');
+  }
+  const account = walletClient.account;
+  if (!account) {
+    throw new Error('Wallet client tidak terhubung ke account.');
+  }
+  const tokenAddress = TOKENS[tokenSymbol] as Hex;
+  const decimals = TOKEN_DECIMALS[tokenAddress.toLowerCase()] ?? 18;
+  const [intPart, fracPart = ''] = amount.split('.');
+  const paddedFraction = (fracPart + '0'.repeat(decimals)).slice(0, decimals);
+  const value =
+    BigInt(intPart) * BigInt(10) ** BigInt(decimals) + BigInt(paddedFraction);
+
+  // Approve token
+  const approveHash = await approveToken(walletClient, tokenAddress, value);
+  await waitForTx(approveHash);
+
+  // Swap
+  const txHash = await walletClient.writeContract({
     chain: base,
-    account: merchantAddress,
-    address: MERCHANT_ROUTER_ADDRESS as Address,
+    account,
+    address: MERCHANT_ROUTER_ADDRESS as Hex,
     abi: MERCHANT_ROUTER_ABI,
     functionName: 'swapToIDRX',
-    args: [tokenAddress, amountInUnits, minAmount],
+    args: [tokenAddress, value],
   });
-
-  return hash;
+  await waitForTx(txHash);
+  return txHash;
 }
 
-/**
- * Get transaction history dari merchant
- */
-export async function getMerchantTransactionHistory(
-  merchantAddress: Address,
-  pageSize: number = 10
-): Promise<any[]> {
-  // Skip if contract address is placeholder
-  if (MERCHANT_ROUTER_ADDRESS === '0x0000000000000000000000000000000000000000') {
-    console.warn('MerchantRouter address is placeholder, skipping transaction history fetch');
-    return [];
-  }
-
-  try {
-    const history = await publicClient.readContract({
-      address: MERCHANT_ROUTER_ADDRESS as Address,
-      abi: MERCHANT_ROUTER_ABI,
-      functionName: 'getTransactionHistory',
-      args: [merchantAddress, BigInt(pageSize)],
-    });
-
-    return (history as any[]).map((tx) => ({
-      txHash: tx.txHash,
-      tokenIn: tx.tokenIn,
-      amountIn: formatUnits(
-        tx.amountIn as bigint,
-        TOKEN_DECIMALS[tx.tokenIn as keyof typeof TOKEN_DECIMALS] || 18
-      ),
-      amountOut: formatUnits(tx.amountOut as bigint, TOKEN_DECIMALS.IDRX),
-      timestamp: new Date(Number(tx.timestamp) * 1000),
-      fee: formatUnits(tx.fee as bigint, TOKEN_DECIMALS.IDRX),
-    }));
-  } catch (error) {
-    console.error('Error fetching transaction history:', error);
-    return [];
-  }
-}
-
-/**
- * Observe token swap events untuk real-time updates
- */
-export function watchSwapEvents(
-  merchantAddress: Address,
-  callback: (event: any) => void
-) {
-  return publicClient.watchContractEvent({
-    address: MERCHANT_ROUTER_ADDRESS as Address,
-    abi: MERCHANT_ROUTER_ABI,
-    eventName: 'SwapExecuted',
-    onLogs: (logs) => {
-      logs.forEach((log) => {
-        if (log.args.merchant?.toLowerCase() === merchantAddress.toLowerCase()) {
-          callback({
-            merchant: log.args.merchant,
-            tokenIn: log.args.tokenIn,
-            amountIn: formatUnits(
-              log.args.amountIn as bigint,
-              TOKEN_DECIMALS[log.args.tokenIn as keyof typeof TOKEN_DECIMALS] || 18
-            ),
-            amountOut: formatUnits(log.args.amountOut as bigint, TOKEN_DECIMALS.IDRX),
-            timestamp: new Date(Number(log.args.timestamp) * 1000),
-          });
-        }
-      });
-    },
-  });
-}
-
-/**
- * Get current exchange rate USDT/USDC -> IDRX
- * (Simulasi - ganti dengan actual price feed)
- */
-export async function getExchangeRate(
-  tokenAddress: Address
-): Promise<{ rate: number; lastUpdate: Date }> {
-  // TODO: Integrasi dengan Chainlink price feed atau DEX aggregator
-  // Ini adalah simulasi
-  const rates: Record<string, number> = {
-    [TOKEN_ADDRESSES.USDT]: 16000, // 1 USDT = 16000 IDRX (simulasi)
-    [TOKEN_ADDRESSES.USDC]: 16000, // 1 USDC = 16000 IDRX (simulasi)
-  };
-
-  return {
-    rate: rates[tokenAddress] || 0,
-    lastUpdate: new Date(),
-  };
-}
-
-/**
- * Get transaction receipt & status
- */
-export async function getTransactionStatus(txHash: string) {
-  const receipt = await publicClient.getTransactionReceipt({
-    hash: txHash as `0x${string}`,
-  });
-
-  return {
-    hash: receipt.transactionHash,
-    status: receipt.status === 'success' ? 'success' : 'failed',
-    blockNumber: receipt.blockNumber,
-    gasUsed: receipt.gasUsed.toString(),
-  };
-}
-
-/**
- * Request swap quote from OnChainKit (if available). Returns required token amount and encoded swap path (bytes hex)
- */
-export async function getOnchainKitQuote(
-  tokenIn: Address,
-  desiredIDRX: number
-): Promise<{ amountIn: string; swapPath: string; minOut: string }> {
-  const apiUrl = process.env.NEXT_PUBLIC_ONCHAINKIT_API_URL || 'https://api.onchainkit.coinbase.com';
-
-  if (!process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY) {
-    // Fallback simulation using getExchangeRate
-    const rateResp = await getExchangeRate(tokenIn);
-    const rate = rateResp.rate || 0;
-    const requiredToken = rate > 0 ? desiredIDRX / rate : 0;
-    return {
-      amountIn: requiredToken.toFixed(6),
-      swapPath: '0x',
-      minOut: desiredIDRX.toFixed(6),
-    };
-  }
-
-  try {
-    const resp = await fetch(`${apiUrl}/swap/quote`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: tokenIn,
-        to: process.env.NEXT_PUBLIC_IDRX_ADDRESS,
-        toAmount: desiredIDRX.toString(),
-        network: 'base',
-      }),
-    });
-
-    if (!resp.ok) throw new Error('Quote API error');
-    const data = await resp.json();
-
-    // Expect data { fromAmount, encodedPath, minToAmount }
-    return {
-      amountIn: data.fromAmount,
-      swapPath: data.encodedPath || '0x',
-      minOut: data.minToAmount || desiredIDRX.toString(),
-    };
-  } catch (error) {
-    console.error('OnChainKit quote error:', error);
-    const rateResp = await getExchangeRate(tokenIn);
-    const rate = rateResp.rate || 0;
-    const requiredToken = rate > 0 ? desiredIDRX / rate : 0;
-    return {
-      amountIn: requiredToken.toFixed(6),
-      swapPath: '0x',
-      minOut: desiredIDRX.toFixed(6),
-    };
-  }
-}
-
-/**
- * Payer executes payAndSwapToMerchant with encoded swapPath
- */
+/** Payer membayar merchant lalu swap ke IDRX */
 export async function executePayAndSwap(
-  payerAddress: Address,
-  tokenIn: Address,
-  amountToken: string,
-  merchantAddress: Address,
-  swapPathHex: string,
-  minIDRXOut: string,
-  walletClient: WalletClient
-): Promise<string> {
-  const decimals = TOKEN_DECIMALS[tokenIn as keyof typeof TOKEN_DECIMALS] || 18;
-  const amountInUnits = parseUnits(amountToken, decimals);
-  const minOutUnits = parseUnits(minIDRXOut, TOKEN_DECIMALS.IDRX);
+  walletClient: WalletClient,
+  tokenSymbol: keyof typeof TOKENS,
+  amount: string,
+  merchant: Hex,
+): Promise<Hex> {
+  if (!MERCHANT_ROUTER_ADDRESS) {
+    throw new Error('Merchant router belum dikonfigurasi.');
+  }
+  const account = walletClient.account;
+  if (!account) {
+    throw new Error('Wallet client tidak terhubung ke account.');
+  }
+  const tokenAddress = TOKENS[tokenSymbol] as Hex;
+  const decimals = TOKEN_DECIMALS[tokenAddress.toLowerCase()] ?? 18;
+  const [intPart, fracPart = ''] = amount.split('.');
+  const paddedFraction = (fracPart + '0'.repeat(decimals)).slice(0, decimals);
+  const value =
+    BigInt(intPart) * BigInt(10) ** BigInt(decimals) + BigInt(paddedFraction);
 
-  // Approve router via merchant router contract
-  await approveToken(tokenIn, MERCHANT_ROUTER_ADDRESS as Address, amountToken, payerAddress, walletClient);
-  await new Promise((r) => setTimeout(r, 1000));
+  // Approve token
+  const approveHash = await approveToken(walletClient, tokenAddress, value);
+  await waitForTx(approveHash);
 
-  const hash = await walletClient.writeContract({
+  // Pay & Swap
+  const txHash = await walletClient.writeContract({
     chain: base,
-    account: payerAddress,
-    address: MERCHANT_ROUTER_ADDRESS as Address,
+    account,
+    address: MERCHANT_ROUTER_ADDRESS as Hex,
     abi: MERCHANT_ROUTER_ABI,
     functionName: 'payAndSwapToMerchant',
-    args: [tokenIn, amountInUnits, merchantAddress, swapPathHex, minOutUnits],
-  } as any);
+    args: [tokenAddress, value, merchant],
+  });
+  await waitForTx(txHash);
+  return txHash;
+}
 
-  return hash as string;
+/** Dapatkan nilai tukar (simulasi); ganti dengan oracle/aggregator sesungguhnya */
+export async function getExchangeRate(
+  tokenSymbol: keyof typeof TOKENS,
+): Promise<number> {
+  if (tokenSymbol === 'IDRX') {
+    return 1;
+  }
+  return 16000; // misal 1 USDT/USDC = 16,000 IDRX
 }
