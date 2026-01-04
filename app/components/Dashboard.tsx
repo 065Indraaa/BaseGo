@@ -33,7 +33,22 @@ export default function Dashboard() {
   
   // Real data from blockchain
   const [idrxBalance, setIDRXBalance] = useState('0.00');
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<Array<{
+    txHash: string;
+    tokenIn: string;
+    amountIn: string;
+    amountOut: string;
+    timestamp: Date;
+    fee: string;
+  } | {
+    id: string | number;
+    type: string;
+    amount: number;
+    token: string;
+    time: string;
+    status: string;
+    timestamp?: Date;
+  }>>([]);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
 
   // Data Dummy Profil (from localStorage or default)
@@ -68,15 +83,15 @@ export default function Dashboard() {
         // Get exchange rates for USDT and USDC
         const rates: Record<string, number> = {};
         try {
-          const usdtRate = await getExchangeRate('USDT');
-          rates[TOKENS.USDT.toLowerCase()] = usdtRate;
+          const usdtRateResult = await getExchangeRate(TOKENS.USDT as Hex);
+          rates[TOKENS.USDT.toLowerCase()] = usdtRateResult.rate;
         } catch (e) {
           console.log('Could not fetch USDT rate:', e);
           rates[TOKENS.USDT.toLowerCase()] = 0;
         }
         try {
-          const usdcRate = await getExchangeRate('USDC');
-          rates[TOKENS.USDC.toLowerCase()] = usdcRate;
+          const usdcRateResult = await getExchangeRate(TOKENS.USDC as Hex);
+          rates[TOKENS.USDC.toLowerCase()] = usdcRateResult.rate;
         } catch (e) {
           console.log('Could not fetch USDC rate:', e);
           rates[TOKENS.USDC.toLowerCase()] = 0;

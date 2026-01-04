@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useAccount } from 'wagmi';
 import { Loader2, Sparkles, ShieldCheck, Zap, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 

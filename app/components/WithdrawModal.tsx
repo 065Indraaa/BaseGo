@@ -9,7 +9,7 @@ interface WithdrawModalProps {
   isOpen: boolean;
   onClose: () => void;
   kycStatus: string;
-  savedBank: any;
+  savedBank: { bank: string; number: string; name: string } | null;
   openKyc: () => void;
 }
 

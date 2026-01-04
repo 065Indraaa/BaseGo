@@ -1,19 +1,38 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Calendar, FileText, Search, CheckCircle2, Clock, XCircle, Share2, Download, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Calendar, FileText, Clock, Download, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TRANSACTION_HISTORY, formatIDRX } from '../lib/data';
 
 type TimeFilter = 'Hari Ini' | '7 Hari' | '1 Bulan' | '1 Tahun' | 'Semua';
 type TabType = 'income' | 'withdraw';
 
+type TransactionItem = 
+  | {
+      id: string | number;
+      type: string;
+      amount: number;
+      token: string;
+      time: string;
+      status: string;
+      timestamp?: Date;
+    }
+  | {
+      txHash: string;
+      tokenIn: string;
+      amountIn: string;
+      amountOut: string;
+      timestamp: Date;
+      fee: string;
+    };
+
 interface HistorySectionProps {
-  transactions?: any[];
+  transactions?: TransactionItem[];
   isLoading?: boolean;
 }
 
-export default function HistorySection({ transactions = TRANSACTION_HISTORY, isLoading = false }: HistorySectionProps) {
+export default function HistorySection({ transactions = TRANSACTION_HISTORY, isLoading: _isLoading = false }: HistorySectionProps) {
   const [activeTab, setActiveTab] = useState<TabType>('income');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('Semua');
   const [showReportModal, setShowReportModal] = useState(false);
@@ -22,15 +41,24 @@ export default function HistorySection({ transactions = TRANSACTION_HISTORY, isL
   const filteredData = useMemo(() => {
     return transactions.filter(item => {
       const isIncome = activeTab === 'income';
-      const itemTypeMatch = isIncome ? item.type === 'Payment' : item.type === 'Withdraw';
+      // Support both formats
+      const itemType = 'type' in item ? item.type : 'Payment';
+      const itemTypeMatch = isIncome ? itemType === 'Payment' : itemType === 'Withdraw';
       let timeMatch = true; 
-      if (timeFilter === 'Hari Ini') timeMatch = item.time?.includes(':') || item.timestamp; 
+      if (timeFilter === 'Hari Ini') {
+        const hasTime = 'time' in item ? item.time?.includes(':') : false;
+        const hasTimestamp = 'timestamp' in item ? item.timestamp : false;
+        timeMatch = hasTime || !!hasTimestamp;
+      }
       return itemTypeMatch && timeMatch;
     });
   }, [activeTab, timeFilter, transactions]);
 
   const totalAmount = useMemo(() => {
-    return filteredData.reduce((acc, curr) => acc + curr.amount, 0);
+    return filteredData.reduce((acc, curr) => {
+      const amount = 'amount' in curr ? curr.amount : parseFloat('amountOut' in curr ? curr.amountOut : '0') * 16000;
+      return acc + amount;
+    }, 0);
   }, [filteredData]);
 
   const handleDownload = () => {
@@ -109,8 +137,15 @@ export default function HistorySection({ transactions = TRANSACTION_HISTORY, isL
       <div className="space-y-3">
          <AnimatePresence mode="popLayout">
             {filteredData.length > 0 ? (
-                filteredData.map((item, index) => (
-                    <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}
+                filteredData.map((item, index) => {
+                  const itemId = 'id' in item ? item.id : item.txHash;
+                  const itemToken = 'token' in item ? item.token : item.tokenIn.slice(0, 6).toUpperCase();
+                  const itemTime = 'time' in item ? item.time : item.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                  const itemAmount = 'amount' in item ? item.amount : parseFloat('amountOut' in item ? item.amountOut : '0') * 16000;
+                  const itemStatus = 'status' in item ? item.status : 'Success';
+                  
+                  return (
+                    <motion.div key={itemId} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}
                         className="bg-white/80 backdrop-blur-sm p-4 rounded-[20px] border border-white shadow-sm flex items-center justify-between hover:shadow-md hover:scale-[1.01] transition-all">
                         <div className="flex items-center gap-4">
                             <div className={`w-12 h-12 rounded-[18px] flex items-center justify-center shadow-inner ${activeTab === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
@@ -119,21 +154,22 @@ export default function HistorySection({ transactions = TRANSACTION_HISTORY, isL
                             <div>
                                 <h4 className="font-bold text-slate-800 text-sm">{activeTab === 'income' ? 'Pembayaran' : 'Penarikan'}</h4>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">{item.token}</span>
-                                    <span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock size={10}/> {item.time}</span>
+                                    <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">{itemToken}</span>
+                                    <span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock size={10}/> {itemTime}</span>
                                 </div>
                             </div>
                         </div>
                         <div className="text-right">
                             <p className={`font-black text-sm ${activeTab === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                {activeTab === 'income' ? '+' : '-'} {formatIDRX(item.amount)}
+                                {activeTab === 'income' ? '+' : '-'} {formatIDRX(itemAmount)}
                             </p>
-                            <div className={`inline-flex items-center gap-1 text-[10px] font-bold mt-1 px-2 py-0.5 rounded-full ${item.status === 'Success' ? 'bg-green-100/50 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
-                                {item.status}
+                            <div className={`inline-flex items-center gap-1 text-[10px] font-bold mt-1 px-2 py-0.5 rounded-full ${itemStatus === 'Success' ? 'bg-green-100/50 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                                {itemStatus}
                             </div>
                         </div>
                     </motion.div>
-                ))
+                  );
+                })
             ) : (
                 <div className="text-center py-12 bg-white/40 rounded-[32px] border border-dashed border-slate-300">
                     <p className="text-slate-400 font-bold text-sm">Tidak ada transaksi</p>

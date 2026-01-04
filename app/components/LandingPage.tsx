@@ -14,7 +14,7 @@ import {
   Identity, 
   EthBalance 
 } from '@coinbase/onchainkit/identity';
-import { ArrowRight, Zap, ShieldCheck, TrendingUp, ChevronRight, Store, Globe, LogOut } from 'lucide-react';
+import { ArrowRight, Zap, ShieldCheck, TrendingUp, Store, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';

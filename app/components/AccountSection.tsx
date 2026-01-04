@@ -4,18 +4,18 @@ import { useState, useEffect } from 'react';
 import { 
   ShieldAlert, ShieldCheck, Building, User, Phone, 
   Save, Edit3, Rocket, CreditCard, Bell, HelpCircle, 
-  LogOut, ChevronRight, Copy, QrCode, Camera, X, Download, Share2 
+  LogOut, ChevronRight, Copy, QrCode, X, Download, Share2 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'react-qr-code';
 
 interface AccountSectionProps {
   merchantProfile: { name: string; owner: string; phone: string; address: string; };
-  setMerchantProfile: (profile: any) => void;
+  setMerchantProfile: (profile: { name: string; owner: string; phone: string; address: string; }) => void;
   kycStatus: string;
   setIsKYCModalOpen: (isOpen: boolean) => void;
   savedBank?: { bank: string; number: string; name: string } | null;
-  setSavedBank: (bank: any) => void;
+  setSavedBank: (bank: { bank: string; number: string; name: string } | null) => void;
 }
 
 export default function AccountSection({ 

@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TOKEN_ADDRESSES, TOKEN_NAMES, SWAP_FEE_PERCENTAGE } from '@/app/lib/contracts';
+import { TOKENS, TOKEN_NAMES, SWAP_FEE_PERCENTAGE } from '@/app/lib/contracts';
 import { getOnchainKitQuote } from '@/app/lib/blockchain';
 
 interface PaymentRequestModalProps {
@@ -25,7 +25,7 @@ export default function PaymentRequestModal({
   merchantAddress,
   exchangeRates,
 }: PaymentRequestModalProps) {
-  const [selectedToken, setSelectedToken] = useState(TOKEN_ADDRESSES.USDT);
+  const [selectedToken, setSelectedToken] = useState(TOKENS.USDT);
   // `amount` is the desired IDRX the merchant wants to receive
   const [amount, setAmount] = useState('');
   const [copied, setCopied] = useState(false);
@@ -107,7 +107,7 @@ export default function PaymentRequestModal({
               Pilih Token
             </label>
             <div className="flex gap-3">
-              {[TOKEN_ADDRESSES.USDT, TOKEN_ADDRESSES.USDC].map((token) => (
+              {[TOKENS.USDT, TOKENS.USDC].map((token) => (
                 <button
                   key={token}
                   onClick={() => setSelectedToken(token)}

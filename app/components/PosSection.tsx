@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
 // PERBAIKAN: Menambahkan 'Landmark' ke dalam import
-import { Wallet, Lock, ArrowUpRight, Check, ChevronDown, X, Share2, Printer, AlertCircle, Delete, ScanLine, Landmark } from 'lucide-react';
+import { Wallet, Lock, ArrowUpRight, Check, ChevronDown, X, Share2, Printer, Delete, ScanLine, Landmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TOKENS } from '../lib/data';
+import { formatIDRX, TRANSACTION_HISTORY } from '../lib/data';
 import { TOKENS as CONTRACT_TOKENS } from '@/app/lib/contracts';
 
 interface PosSectionProps {
@@ -52,7 +52,15 @@ export default function PosSection({ kycStatus, onOpenWithdraw, setActiveTab, id
 
     const defaultToken = tokenList[0];
     const [amountIDR, setAmountIDR] = useState('');
-    const [selectedToken, setSelectedToken] = useState<any>(defaultToken);
+    const [selectedToken, setSelectedToken] = useState<{
+      address: string;
+      id: string;
+      name: string;
+      symbol: string;
+      price: number;
+      logo: string;
+      isNative: boolean;
+    }>(defaultToken);
   const [showQR, setShowQR] = useState(false);
   const [isTokenSelectorOpen, setIsTokenSelectorOpen] = useState(false);
   const [bump, setBump] = useState(false);
@@ -178,7 +186,7 @@ export default function PosSection({ kycStatus, onOpenWithdraw, setActiveTab, id
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
                           className="absolute top-full right-0 mt-3 bg-white rounded-3xl shadow-xl border border-slate-100 p-2 z-50 w-56 origin-top-right"
                         >
-                            {TOKENS.map((token) => (
+                            {tokenList.map((token) => (
                                 <button key={token.id} onClick={() => { setSelectedToken(token); setIsTokenSelectorOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all mb-1 last:mb-0 hover:bg-slate-50`}>
                                     <span className="text-2xl">{token.logo}</span>
                                     <div className="text-left">
