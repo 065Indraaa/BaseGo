@@ -31,6 +31,7 @@ export default function PaymentRequestModal({
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [qrPayload, setQrPayload] = useState<string | null>(null); // New state for QR payload
 
   const rate = exchangeRates[selectedToken] || 16000;
   const feeFraction = SWAP_FEE_PERCENTAGE / 100;
@@ -50,24 +51,31 @@ export default function PaymentRequestModal({
     if (!amount || isNaN(parseFloat(amount))) return;
 
     setIsProcessing(true);
-    // Fetch quote / swap path from OnChainKit (or fallback)
-    const quote = await getOnchainKitQuote(selectedToken as `0x${string}`, desiredIDRX);
+    try {
+      // Fetch quote / swap path from OnChainKit (or fallback)
+      const quote = await getOnchainKitQuote(selectedToken as `0x${string}`, desiredIDRX);
 
-    const payload = {
-      type: 'basego-pay',
-      merchant: merchantAddress,
-      token: selectedToken,
-      amountToken: quote.amountIn,
-      desiredIDRX: desiredIDRX.toFixed(2),
-      feePercent: SWAP_FEE_PERCENTAGE,
-      swapPath: quote.swapPath,
-      minOut: quote.minOut,
-      network: 'base',
-    };
+      const payload = {
+        type: 'basego-pay',
+        merchant: merchantAddress,
+        token: selectedToken,
+        amountToken: quote.amountIn,
+        desiredIDRX: desiredIDRX.toFixed(2),
+        feePercent: SWAP_FEE_PERCENTAGE,
+        swapPath: quote.swapPath,
+        minOut: quote.minOut,
+        network: 'base',
+      };
+      setQrPayload(JSON.stringify(payload)); // Set payload for QR code
 
-    // show QR for payer dApp to scan and execute payment
-    setShowQR(true);
-    setIsProcessing(false);
+      // show QR for payer dApp to scan and execute payment
+      setShowQR(true);
+    } catch (error) {
+      console.error("Error creating payment request:", error);
+      // Optionally, show an error message to the user
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -150,18 +158,10 @@ export default function PaymentRequestModal({
             </motion.div>
           )}
 
-          {showQR && amount && (
+          {showQR && qrPayload && (
             <div className="bg-white p-6 rounded-2xl border border-white/10 inline-block mb-6 shadow-xl">
               <QRCode
-                value={JSON.stringify({
-                  type: 'basego-pay',
-                  merchant: merchantAddress,
-                  token: selectedToken,
-                  amountToken: tokenAmountDisplay,
-                  desiredIDRX: desiredIDRX.toFixed(2),
-                  feePercent: SWAP_FEE_PERCENTAGE,
-                  network: 'base',
-                })}
+                value={qrPayload}
                 size={200}
                 className="rounded-xl"
               />
