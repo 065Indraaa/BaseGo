@@ -16,6 +16,7 @@ const wagmiConfig = createConfig({
   connectors: [
     coinbaseWallet({
       appName: 'BaseGo Merchant',
+      preference: 'smartWalletOnly',
     }),
   ],
   transports: { [base.id]: http() }, // Fix: Format transport array/map yang benar
