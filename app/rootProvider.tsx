@@ -4,7 +4,7 @@ import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { base } from 'viem/chains';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { coinbaseWallet } from 'wagmi/connectors';
+import { coinbaseWallet, injected } from 'wagmi/connectors';
 import { type ReactNode, useState } from 'react';
 import { AuthProvider } from './lib/authContext';
 
@@ -16,10 +16,14 @@ const wagmiConfig = createConfig({
   connectors: [
     coinbaseWallet({
       appName: 'BaseGo Merchant',
-      preference: 'smartWalletOnly',
+      preference: 'all', // Allow both smart wallet and regular wallet
     }),
+    injected({
+      target: 'metaMask',
+    }),
+    injected(), // Generic injected connector for other wallets
   ],
-  transports: { [base.id]: http() }, // Fix: Format transport array/map yang benar
+  transports: { [base.id]: http() },
 });
 
 export function RootProvider({ children }: { children: ReactNode }) {

@@ -19,14 +19,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { address, isConnected } = useAccount();
   const [merchantName, setMerchantName] = useState<string | null>(null);
 
-  // Check localStorage untuk merchant data
-  useEffect(() => {
+  // Function to refresh merchant data
+  const refreshMerchantData = () => {
     if (address && isConnected) {
       const savedMerchant = localStorage.getItem(`merchant_${address}`);
       if (savedMerchant) {
-        setMerchantName(JSON.parse(savedMerchant).name);
+        try {
+          const merchantData = JSON.parse(savedMerchant);
+          setMerchantName(merchantData.name);
+        } catch (e) {
+          console.error('Error parsing merchant data:', e);
+          setMerchantName(null);
+        }
+      } else {
+        setMerchantName(null);
       }
+    } else {
+      setMerchantName(null);
     }
+  };
+
+  // Check localStorage untuk merchant data
+  useEffect(() => {
+    refreshMerchantData();
+  }, [address, isConnected]);
+
+  // Listen to storage changes (for when merchant registers)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      refreshMerchantData();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    // Also listen to custom event for same-tab updates
+    window.addEventListener('merchantRegistered', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('merchantRegistered', handleStorageChange);
+    };
   }, [address, isConnected]);
 
   return (

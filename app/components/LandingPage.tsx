@@ -40,10 +40,22 @@ export default function LandingPage() {
         `merchant_${address}`,
         JSON.stringify({ name: merchantName, registeredAt: new Date().toISOString() })
       );
-      setShowDashboard(true);
-      setShowMerchantForm(false);
+      // Trigger custom event to refresh auth context
+      window.dispatchEvent(new Event('merchantRegistered'));
+      // Wait a bit for context to update, then show dashboard
+      setTimeout(() => {
+        setShowDashboard(true);
+        setShowMerchantForm(false);
+      }, 100);
     }
   };
+
+  // Sync merchant status from auth context
+  useEffect(() => {
+    if (isMerchant && isConnected) {
+      setShowDashboard(true);
+    }
+  }, [isMerchant, isConnected]);
 
   // Jika sudah login sebagai merchant, tampilkan dashboard
   if (mounted && isConnected && isMerchant && showDashboard) {

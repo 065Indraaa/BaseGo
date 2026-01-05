@@ -4,9 +4,11 @@ import { useAccount } from 'wagmi';
 import { useEffect, useState } from 'react';
 import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
+import { useAuth } from './lib/authContext';
 
 export default function Page() {
   const { isConnected } = useAccount();
+  const { isMerchant } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -18,11 +20,11 @@ export default function Page() {
     return <LandingPage />;
   }
 
-  // Kalau connect -> Dashboard
-  if (isConnected) {
+  // Kalau connect DAN sudah merchant -> Dashboard
+  if (isConnected && isMerchant) {
     return <Dashboard />;
   }
 
-  // Kalau belum connect -> LandingPage
+  // Kalau belum connect atau belum merchant -> LandingPage
   return <LandingPage />;
 }
